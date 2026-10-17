@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root { color-scheme: light; }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<title>Monkey Symphony</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@1,600&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: title and controls on top, then three seating bands (woodwinds, brass and timpani, strings). Each instrument is one panel holding a row of small monkey tiles. */
+:root {
+  --bg: #f1ecee;
+  --panel: #fbf8f9;
+  --fg: #24161b;
+  --muted: #6d5a61;
+  --line: #dccfd3;
+  --accent: #8f1d3a;
+  --accent-fg: #ffffff;
+  --woodwind: #2b7a70;
+  --brass: #a96c12;
+  --perc: #6b4fa0;
+  --strings: #31619f;
+  --face: #ead0ae;
+  --eye: #2a1a14;
+  --fur-a: #8a5a3a;
+  --fur-b: #6b4430;
+  --fur-c: #a47448;
+  --font-display: 'Bodoni Moda', Didot, Georgia, serif;
+  --font-body: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #170d12; --panel: #221319; --fg: #f0e4e8; --muted: #b19aa2; --line: #3a252d;
+    --accent: #e0627f; --accent-fg: #1b0b10;
+    --woodwind: #5cc2b3; --brass: #e4a94a; --perc: #a58ae0; --strings: #6f9de0;
+    --face: #e3c49f; --eye: #2a1a14;
+    --fur-a: #a06b45; --fur-b: #815238; --fur-c: #b98852;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #170d12; --panel: #221319; --fg: #f0e4e8; --muted: #b19aa2; --line: #3a252d;
+  --accent: #e0627f; --accent-fg: #1b0b10;
+  --woodwind: #5cc2b3; --brass: #e4a94a; --perc: #a58ae0; --strings: #6f9de0;
+  --face: #e3c49f; --eye: #2a1a14;
+  --fur-a: #a06b45; --fur-b: #815238; --fur-c: #b98852;
+  color-scheme: dark;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+a { color: var(--accent); }
+
+.kicker {
+  margin: 0 0 12px;
+  font: 500 0.75rem var(--font-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+h1 {
+  margin: 0 0 16px;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 600;
+  font-size: clamp(2.6rem, 9vw, 5rem);
+  line-height: 1;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.lede { margin: 0; max-width: 62ch; font-size: 1.05rem; color: var(--muted); }
+.lede strong { color: var(--fg); font-weight: 600; }
+
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; margin-top: 28px; }
+.btn {
+  font: 500 0.875rem var(--font-body);
+  padding: 0.6rem 1.1rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--fg);
+  cursor: pointer;
+}
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: transparent; min-width: 5.5rem; }
+.btn[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: transparent; }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.seg .btn { font-family: var(--font-mono); padding: 0.6rem 0.85rem; }
+.hint { margin: 10px 0 0; max-width: 70ch; font: 400 0.75rem var(--font-mono); color: var(--muted); }
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 16px 32px;
+  margin: 24px 0 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+.stat { min-width: 0; }
+.stat dt { font: 500 0.7rem var(--font-mono); letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
+.stat dd { margin: 4px 0 0; font: 500 1.5rem var(--font-mono); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.stat dd small { display: block; font: 400 0.72rem var(--font-mono); color: var(--muted); margin-top: 2px; }
+
+.band-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 36px 0 12px; }
+.swatch { align-self: center; width: 10px; height: 10px; border-radius: 50%; background: var(--sec); }
+.band-head h2 { margin: 0; font-family: var(--font-display); font-style: italic; font-weight: 600; font-size: 1.55rem; line-height: 1.1; }
+.band-meta { font: 400 0.72rem var(--font-mono); color: var(--muted); letter-spacing: 0.04em; }
+.band { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px; }
+
+.cluster {
+  min-width: 0;
+  max-width: 100%;
+  padding: 10px 12px 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.name { margin: 0; font-size: 0.95rem; font-weight: 600; line-height: 1.25; }
+.mult { font: 500 0.75rem var(--font-mono); color: var(--sec); margin-left: 4px; }
+.range { margin: 0 0 8px; font: 400 0.7rem var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.tiles { display: flex; flex-wrap: wrap; gap: 6px 4px; }
+.tile { width: 60px; text-align: center; }
+.tile svg { display: block; width: 60px; height: 60px; overflow: visible; }
+.nt { height: 1.2em; font: 500 0.68rem/1.2 var(--font-mono); font-variant-numeric: tabular-nums; }
+
+.fur { fill: var(--fur); }
+.furs { stroke: var(--fur); fill: none; stroke-linecap: round; }
+.face { fill: var(--face); }
+.eye { fill: var(--eye); }
+.mouth { stroke: var(--eye); fill: none; stroke-width: 1.6; stroke-linecap: round; }
+.ins { fill: var(--sec); }
+.insl { stroke: var(--sec); fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.key { fill: var(--panel); }
+.bow { stroke: var(--fg); stroke-width: 1.4; stroke-linecap: round; fill: none; }
+.drumhead { fill: var(--panel); stroke: var(--sec); stroke-width: 2; }
+.drumlab { fill: var(--sec); font: 500 7px var(--font-mono); text-anchor: middle; }
+
+footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line); max-width: 70ch; }
+footer p { margin: 0 0 8px; font-size: 0.85rem; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="kicker">Beethoven · Symphony No. 5 in C minor, Op. 67</p>
+    <h1>Monkey Symphony</h1>
+    <p class="lede">A full orchestra of <strong>58 monkeys</strong>, the size of a typical performance, each hitting random notes in their instrument's range at random moments. Given enough time they will play the whole Fifth. First they need the opening four notes: <strong>G, G, G, E♭</strong>.</p>
+  </header>
+
+  <div class="controls">
+    <button class="btn primary" id="toggle" type="button">Pause</button>
+    <button class="btn" id="reset" type="button">Reset</button>
+    <div class="seg" id="speeds" role="group" aria-label="Speed"></div>
+    <button class="btn" id="sound" type="button" aria-pressed="true">Sound on</button>
+  </div>
+  <p class="hint" id="hint">Sound is on.</p>
+
+  <dl class="stats">
+    <div class="stat"><dt>Monkeys</dt><dd id="mcount">58</dd></div>
+    <div class="stat"><dt>Notes played</dt><dd id="total">0</dd></div>
+    <div class="stat"><dt>Time elapsed</dt><dd id="clock">00:00:00</dd></div>
+    <div class="stat"><dt>Opening motifs</dt><dd id="motifs">0<small id="latest">None yet</small></dd></div>
+  </dl>
+
+  <main id="stage"></main>
+
+  <footer>
+    <p>Every wait between notes is random, a second or two on average, and each monkey picks any note in its instrument's range. Pitches are sounding pitch.</p>
+    <p>The timpani are tuned to G and C, as in Beethoven's score, so those two drums can only ever play those two notes. The piccolo, contrabassoon and trombones only join in the finale. There is no contrabassoon in the sample set, so that monkey plays bassoon samples an octave lower.</p>
+    <p>Instrument sounds come from the FluidR3 GM soundfont, packaged for the web by the <a href="https://github.com/gleitz/midi-js-soundfonts" target="_blank" rel="noopener">midi-js-soundfonts</a> project and used under a <a href="https://creativecommons.org/licenses/by/3.0/us/" target="_blank" rel="noopener">Creative Commons Attribution 3.0</a> licence.</p>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var NOTE = ['C', 'C♯', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭', 'A', 'B♭', 'B'];
+  function nn(m) { return NOTE[m % 12] + (Math.floor(m / 12) - 1); }
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function expo(mean) { return -Math.log(1 - Math.random()) * mean; }
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var FURS = ['a', 'b', 'c'];
+
+  /* Instrument drawings, in the monkey's 120 x 120 space. hands = left and right hand positions. */
+  var INS = {
+    picc: { hands: [[68, 64], [84, 62]], draw: '<path class="insl" stroke-width="3" d="M56 63 L98 61"/>' },
+    flute: { hands: [[74, 62], [96, 60]], draw: '<path class="insl" stroke-width="4" d="M56 63 L112 59"/>' },
+    oboe: { hands: [[60, 76], [60, 90]], draw:
+      '<path class="insl" stroke-width="3.5" d="M60 62 L60 100"/><path class="ins" d="M57 98 L63 98 L67 108 L53 108Z"/>' +
+      '<circle class="key" cx="60" cy="72" r="1.2"/><circle class="key" cx="60" cy="83" r="1.2"/><circle class="key" cx="60" cy="93" r="1.2"/>' },
+    clar: { hands: [[60, 76], [60, 90]], draw:
+      '<path class="insl" stroke-width="4.5" d="M60 62 L60 98"/><path class="ins" d="M56 98 L64 98 L70 110 L50 110Z"/>' +
+      '<circle class="key" cx="60" cy="72" r="1.4"/><circle class="key" cx="60" cy="83" r="1.4"/><circle class="key" cx="60" cy="92" r="1.4"/>' },
+    bsn: { hands: [[74, 80], [74, 94]], draw:
+      '<path class="insl" stroke-width="6" d="M58 60 Q74 56 74 70 L74 106"/><path class="ins" d="M69 104 L79 104 L82 114 L66 114Z"/>' +
+      '<circle class="key" cx="74" cy="80" r="1.5"/><circle class="key" cx="74" cy="92" r="1.5"/>' },
+    cbsn: { hands: [[84, 84], [84, 98]], draw:
+      '<path class="insl" stroke-width="9" d="M58 60 Q84 54 84 72 L84 112"/><path class="insl" stroke-width="5" d="M84 112 Q84 118 76 118 L62 118"/>' +
+      '<circle class="key" cx="84" cy="84" r="1.8"/><circle class="key" cx="84" cy="98" r="1.8"/>' },
+    horn: { hands: [[66, 88], [96, 92]], draw:
+      '<circle class="insl" stroke-width="4" cx="76" cy="92" r="15"/><circle class="insl" stroke-width="3" cx="76" cy="92" r="8.5"/>' +
+      '<path class="insl" stroke-width="3" d="M60 62 L70 78"/><path class="ins" d="M88 82 L104 74 L108 106 L90 102Z"/>' },
+    tpt: { hands: [[72, 68], [86, 68]], draw:
+      '<path class="insl" stroke-width="3.5" d="M58 62 L98 62"/><path class="insl" stroke-width="3" d="M70 62 L70 72 L90 72 L90 62"/>' +
+      '<path class="ins" d="M96 58 L112 50 L112 74 L96 66Z"/>' },
+    tbn: { hands: [[80, 66], [100, 66]], draw:
+      '<path class="insl" stroke-width="3.5" d="M30 62 L112 62"/><path class="insl" stroke-width="3.5" d="M58 70 L108 70 M112 62 Q118 66 108 70"/>' +
+      '<path class="ins" d="M30 58 L14 50 L14 78 L30 66Z"/>' },
+    timp: { hands: [[34, 78], [86, 78]], draw:
+      '<path class="ins" d="M18 98 Q18 118 38 118 Q58 118 58 98Z"/><path class="ins" d="M62 98 Q62 118 82 118 Q102 118 102 98Z"/>' +
+      '<ellipse class="drumhead" cx="38" cy="98" rx="20" ry="6"/><ellipse class="drumhead" cx="82" cy="98" rx="20" ry="6"/>' +
+      '<text class="drumlab" x="38" y="100.6">G</text><text class="drumlab" x="82" y="100.6">C</text>' +
+      '<path class="insl" stroke-width="2" d="M34 78 L40 95"/><path class="insl" stroke-width="2" d="M86 78 L80 95"/>' },
+    vln: { hands: [[90, 56], [88, 75]], draw:
+      '<ellipse class="ins" cx="44" cy="70" rx="11" ry="7" transform="rotate(-25 44 70)"/><path class="insl" stroke-width="2.6" d="M52 66 L96 54"/>' +
+      '<path class="bow" d="M62 82 L108 70"/>' },
+    vla: { hands: [[90, 53], [88, 75]], draw:
+      '<ellipse class="ins" cx="44" cy="70" rx="12.5" ry="8" transform="rotate(-25 44 70)"/><path class="insl" stroke-width="3" d="M53 66 L98 52"/>' +
+      '<path class="bow" d="M62 82 L108 70"/>' },
+    vc: { hands: [[77, 57], [96, 94]], draw:
+      '<ellipse class="ins" cx="50" cy="98" rx="17" ry="21"/><path class="insl" stroke-width="3.5" d="M56 82 L90 40"/>' +
+      '<circle class="ins" cx="92" cy="38" r="3.2"/><path class="bow" d="M52 100 L104 92"/>' },
+    cb: { hands: [[78, 48], [96, 94]], draw:
+      '<ellipse class="ins" cx="46" cy="96" rx="19" ry="23"/><path class="insl" stroke-width="4" d="M54 76 L94 30"/>' +
+      '<circle class="ins" cx="96" cy="28" r="3.4"/><path class="bow" d="M50 102 L106 92"/>' }
+  };
+
+  /* Computer-made fallback voices, used only if the sample file cannot be loaded. */
+  var VOICES = {
+    wood: { wave: 'triangle', vol: 0.06, dur: 0.6, lp: 3000 },
+    brass: { wave: 'sawtooth', vol: 0.035, dur: 0.7, lp: 1500 },
+    perc: { wave: 'sine', vol: 0.25, dur: 0.6, lp: 900, drop: true },
+    strings: { wave: 'sawtooth', vol: 0.03, dur: 0.9, lp: 1800 }
+  };
+
+  /* One entry per instrument part: n monkeys, note range, which sample bank to use, note length range in seconds. */
+  var GROUPS = [
+    { title: 'Woodwinds', color: '--woodwind', voice: 'wood', parts: [
+      { k: 'picc', name: 'Piccolo', n: 1, lo: 74, hi: 96, bank: 'piccolo', dur: [0.5, 1.2], vol: 0.1 },
+      { k: 'flute', name: 'Flute', n: 2, lo: 60, hi: 93, bank: 'flute', dur: [0.5, 1.4], vol: 0.12 },
+      { k: 'oboe', name: 'Oboe', n: 2, lo: 58, hi: 91, bank: 'oboe', dur: [0.5, 1.4], vol: 0.11 },
+      { k: 'clar', name: 'Clarinet', n: 2, lo: 50, hi: 91, bank: 'clarinet', dur: [0.5, 1.4], vol: 0.12 },
+      { k: 'bsn', name: 'Bassoon', n: 2, lo: 34, hi: 75, bank: 'bassoon', dur: [0.5, 1.4], vol: 0.13 },
+      { k: 'cbsn', name: 'Contrabassoon', n: 1, lo: 22, hi: 55, bank: 'bassoon', oct: 1, dur: [0.5, 1.4], vol: 0.14 }
+    ] },
+    { title: 'Brass and timpani', color: '--brass', voice: 'brass', parts: [
+      { k: 'horn', name: 'Horn', n: 2, lo: 36, hi: 77, bank: 'horn', dur: [0.5, 1.2], vol: 0.12 },
+      { k: 'tpt', name: 'Trumpet', n: 2, lo: 55, hi: 82, bank: 'trumpet', dur: [0.4, 1.0], vol: 0.09 },
+      { k: 'tbn', name: 'Trombone', n: 3, lo: 40, hi: 72, bank: 'trombone', dur: [0.5, 1.2], vol: 0.1 },
+      { k: 'timp', name: 'Timpani', n: 1, notes: [43, 48], bank: 'timpani', dur: [2.2, 2.2], vol: 0.35, color: '--perc', voice: 'perc', mean: 1.9 }
+    ] },
+    { title: 'Strings', color: '--strings', voice: 'strings', parts: [
+      { k: 'vln', name: 'Violin I', n: 12, lo: 55, hi: 96, bank: 'violin', dur: [0.6, 1.5], vol: 0.07 },
+      { k: 'vln', name: 'Violin II', n: 10, lo: 55, hi: 91, bank: 'violin', dur: [0.6, 1.5], vol: 0.07 },
+      { k: 'vla', name: 'Viola', n: 8, lo: 48, hi: 88, bank: 'viola', dur: [0.6, 1.5], vol: 0.08 },
+      { k: 'vc', name: 'Cello', n: 6, lo: 36, hi: 76, bank: 'cello', dur: [0.6, 1.5], vol: 0.09 },
+      { k: 'cb', name: 'Double bass', n: 4, lo: 28, hi: 60, bank: 'bass', dur: [0.6, 1.5], vol: 0.1 }
+    ] }
+  ];
+
+  function monkeySVG(p, fur) {
+    var ins = INS[p.k], lh = ins.hands[0], rh = ins.hands[1];
+    return '<svg viewBox="0 0 120 120" role="img" aria-label="Monkey playing the ' + p.name.toLowerCase() + '" style="--fur:var(--fur-' + fur + ')">' +
+      '<g class="mk">' +
+      '<path class="furs" stroke-width="6" d="M84 110 Q108 106 104 84"/>' +
+      '<ellipse class="fur" cx="60" cy="96" rx="28" ry="26"/>' +
+      '<circle class="fur" cx="36" cy="48" r="8"/><circle class="fur" cx="84" cy="48" r="8"/>' +
+      '<circle class="face" cx="36" cy="48" r="4.5"/><circle class="face" cx="84" cy="48" r="4.5"/>' +
+      '<circle class="fur" cx="60" cy="46" r="22"/>' +
+      '<ellipse class="face" cx="60" cy="52" rx="15" ry="13"/>' +
+      '<circle class="eye" cx="53" cy="47" r="2.2"/><circle class="eye" cx="67" cy="47" r="2.2"/>' +
+      '<circle class="eye" cx="57.5" cy="54" r="1"/><circle class="eye" cx="62.5" cy="54" r="1"/>' +
+      '<path class="mouth" d="M54 59 Q60 63 66 59"/>' +
+      ins.draw +
+      '<path class="furs" stroke-width="6.5" d="M43 82 L' + lh[0] + ' ' + lh[1] + '"/>' +
+      '<path class="furs" stroke-width="6.5" d="M77 82 L' + rh[0] + ' ' + rh[1] + '"/>' +
+      '<circle class="fur" cx="' + lh[0] + '" cy="' + lh[1] + '" r="4.6"/>' +
+      '<circle class="fur" cx="' + rh[0] + '" cy="' + rh[1] + '" r="4.6"/>' +
+      '</g></svg>';
+  }
+
+  var state = { t: 0, total: 0, motifs: 0, latest: 'None yet', running: true, speed: 1, sound: true };
+  var monkeys = [];
+  var clusters = [];
+  var stage = document.getElementById('stage');
+
+  GROUPS.forEach(function (g, gi) {
+    var count = g.parts.reduce(function (a, p) { return a + p.n; }, 0);
+    var head = document.createElement('div');
+    head.className = 'band-head';
+    head.style.setProperty('--sec', 'var(' + g.color + ')');
+    head.innerHTML = '<span class="swatch"></span><h2>' + g.title + '</h2><span class="band-meta">' + count + ' monkeys</span>';
+    var band = document.createElement('div');
+    band.className = 'band';
+    g.parts.forEach(function (p, pi) {
+      var range = p.notes ? p.notes.map(nn).join(', ') : nn(p.lo) + '–' + nn(p.hi);
+      var el = document.createElement('section');
+      el.className = 'cluster';
+      el.style.setProperty('--sec', 'var(' + (p.color || g.color) + ')');
+      el.innerHTML = '<h3 class="name">' + p.name + '<span class="mult">×' + p.n + '</span></h3>' +
+        '<p class="range">' + range + ' · <span class="n">0</span> notes</p><div class="tiles"></div>';
+      var tiles = el.querySelector('.tiles');
+      var cl = { total: 0, nEl: el.querySelector('.n') };
+      clusters.push(cl);
+      for (var i = 0; i < p.n; i++) {
+        var tile = document.createElement('div');
+        tile.className = 'tile';
+        tile.title = p.name + ', monkey ' + (i + 1);
+        tile.innerHTML = monkeySVG(p, FURS[(i + pi + gi) % 3]) + '<div class="nt">·</div>';
+        tiles.appendChild(tile);
+        var m = {
+          p: p, idx: i + 1, cl: cl, voice: VOICES[p.voice || g.voice], mean: p.mean || (0.9 + Math.random() * 1.4),
+          count: 0, h1: -1, h2: -1, h3: -1, next: 0,
+          mk: tile.querySelector('.mk'), readout: tile.querySelector('.nt')
+        };
+        m.next = expo(m.mean);
+        monkeys.push(m);
+      }
+      band.appendChild(el);
+    });
+    stage.appendChild(head);
+    stage.appendChild(band);
+  });
+  document.getElementById('mcount').textContent = monkeys.length;
+
+  /* Sound: real instrument samples from samples.js, with a synthesized fallback. */
+  var ctx = null, master = null, banks = {}, mode = 'none'; /* none, loading, samples, synth */
+  var hintEl = document.getElementById('hint');
+
+  function updateHint() {
+    var msg;
+    if (!state.sound) msg = 'Sound is off.';
+    else if (mode === 'none') msg = 'This browser does not support audio.';
+    else if (ctx && ctx.state !== 'running') msg = 'Sound is on. Your browser needs one click anywhere on the page before it will play.';
+    else if (state.speed !== 1) msg = 'Sound plays at 1× speed only.';
+    else if (mode === 'loading') msg = 'Loading instrument samples (about 5 MB)…';
+    else if (mode === 'synth') msg = 'Instrument samples not found, so this is computer-made sound. Keep samples.js next to the page.';
+    else msg = 'Playing real instrument samples.';
+    hintEl.textContent = msg;
+  }
+
+  function decodeBank(name, notes) {
+    var list = [];
+    return Promise.all(Object.keys(notes).map(function (k) {
+      return new Promise(function (resolve) {
+        try {
+          var bin = atob(notes[k]), u = new Uint8Array(bin.length);
+          for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+          ctx.decodeAudioData(u.buffer, function (buf) { list.push({ m: +k, buf: buf }); resolve(); }, function () { resolve(); });
+        } catch (e) { resolve(); }
+      });
+    })).then(function () { banks[name] = list; });
+  }
+
+  function loadSamples() {
+    mode = 'loading';
+    var s = document.createElement('script');
+    s.src = 'samples.js';
+    s.async = true;
+    s.onload = function () {
+      var data = window.MONKEY_SAMPLES;
+      if (!data) { mode = 'synth'; updateHint(); return; }
+      Promise.all(Object.keys(data).map(function (n) { return decodeBank(n, data[n]); })).then(function () {
+        window.MONKEY_SAMPLES = null;
+        mode = 'samples';
+        updateHint();
+      });
+    };
+    s.onerror = function () { mode = 'synth'; updateHint(); };
+    document.head.appendChild(s);
+  }
+
+  function initAudio() {
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) { mode = 'none'; return; }
+      ctx = new AC();
+      var comp = ctx.createDynamicsCompressor();
+      comp.threshold.value = -20; comp.knee.value = 20; comp.ratio.value = 6;
+      comp.attack.value = 0.005; comp.release.value = 0.2;
+      master = ctx.createGain();
+      master.gain.value = 0.9;
+      master.connect(comp);
+      comp.connect(ctx.destination);
+      ctx.onstatechange = updateHint;
+      loadSamples();
+    } catch (e) { mode = 'none'; }
+  }
+
+  /* Browsers keep audio silent until the person interacts, so the first click, key press or tap starts it. */
+  function unlock() {
+    if (ctx && ctx.state !== 'running') {
+      try { ctx.resume().then(updateHint, function () {}); } catch (e) {}
+    }
+  }
+  ['pointerdown', 'keydown', 'touchend'].forEach(function (ev) {
+    document.addEventListener(ev, unlock, { passive: true });
+  });
+
+  function playSample(m, midi) {
+    var bank = banks[m.p.bank];
+    if (!bank || !bank.length) return;
+    var src = midi + (m.p.oct || 0) * 12, best = bank[0], bd = 1e9, i;
+    for (i = 0; i < bank.length; i++) {
+      var d = Math.abs(bank[i].m - src);
+      if (d < bd) { bd = d; best = bank[i]; }
+    }
+    var t = ctx.currentTime, dur = m.p.dur[0] + Math.random() * (m.p.dur[1] - m.p.dur[0]);
+    var s = ctx.createBufferSource(), g = ctx.createGain();
+    s.buffer = best.buf;
+    s.playbackRate.value = Math.pow(2, (src - best.m) / 12) * Math.pow(2, -(m.p.oct || 0));
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(m.p.vol, t + 0.015);
+    g.gain.setValueAtTime(m.p.vol, t + dur);
+    g.gain.linearRampToValueAtTime(0, t + dur + 0.2);
+    s.connect(g); g.connect(master);
+    s.start(t); s.stop(t + dur + 0.25);
+  }
+
+  function blip(m, midi) {
+    var v = m.voice, f = 440 * Math.pow(2, (midi - 69) / 12), t = ctx.currentTime;
+    var o = ctx.createOscillator(), g = ctx.createGain(), lp = ctx.createBiquadFilter();
+    o.type = v.wave;
+    o.frequency.setValueAtTime(v.drop ? f * 1.25 : f, t);
+    if (v.drop) o.frequency.exponentialRampToValueAtTime(f, t + 0.12);
+    lp.type = 'lowpass';
+    lp.frequency.value = v.lp;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(v.vol, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + v.dur);
+    o.connect(lp); lp.connect(g); g.connect(master);
+    o.start(t); o.stop(t + v.dur + 0.05);
+  }
+
+  function playSound(m, midi) {
+    try {
+      if (mode === 'samples') playSample(m, midi);
+      else if (mode === 'synth') blip(m, midi);
+    } catch (e) {}
+  }
+
+  /* Simulation */
+  function fmt(t) {
+    var s = Math.floor(t), d = Math.floor(s / 86400), y = Math.floor(d / 365);
+    var h = Math.floor((s % 86400) / 3600), mi = Math.floor((s % 3600) / 60), se = s % 60;
+    var hms = pad(h) + ':' + pad(mi) + ':' + pad(se);
+    if (y > 0) return y.toLocaleString() + 'y ' + (d % 365) + 'd ' + hms;
+    return (d > 0 ? d + 'd ' : '') + hms;
+  }
+  function playNote(m) {
+    var p = m.p;
+    var midi = p.notes ? p.notes[(Math.random() * p.notes.length) | 0] : p.lo + ((Math.random() * (p.hi - p.lo + 1)) | 0);
+    var pc = midi % 12;
+    if (pc === 3 && m.h1 === 7 && m.h2 === 7 && m.h3 === 7) {
+      state.motifs++;
+      state.latest = p.name + ', monkey ' + m.idx + ', at ' + fmt(state.t);
+    }
+    m.h1 = m.h2; m.h2 = m.h3; m.h3 = pc;
+    m.count++;
+    m.cl.total++;
+    m.cl.dirty = true;
+    state.total++;
+    return midi;
+  }
+  var totalEl = document.getElementById('total');
+  var clockEl = document.getElementById('clock');
+  var motifsEl = document.getElementById('motifs');
+  var latestEl = document.getElementById('latest');
+
+  function render() {
+    totalEl.textContent = state.total.toLocaleString();
+    clockEl.textContent = fmt(state.t);
+    motifsEl.firstChild.nodeValue = state.motifs.toLocaleString();
+    latestEl.textContent = state.latest;
+    clusters.forEach(function (c) {
+      if (c.dirty) { c.nEl.textContent = c.total.toLocaleString(); c.dirty = false; }
+    });
+  }
+
+  function step(dt, animate) {
+    state.t += dt;
+    var soundOn = animate && state.sound && state.speed === 1 && ctx && ctx.state === 'running';
+    monkeys.forEach(function (m) {
+      var played = 0, midi = 0;
+      while (m.next <= state.t && played < 400) {
+        midi = playNote(m);
+        played++;
+        m.next += expo(m.mean);
+      }
+      if (m.next <= state.t) m.next = state.t + expo(m.mean);
+      if (!played) return;
+      m.readout.textContent = nn(midi);
+      if (animate && !reduce) {
+        m.mk.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(-6px)' }, { transform: 'translateY(0)' }], { duration: 180, easing: 'ease-out' });
+        m.readout.animate([{ color: 'var(--sec)' }, { color: 'var(--fg)' }], { duration: 450 });
+      }
+      if (soundOn) playSound(m, midi);
+    });
+    render();
+  }
+
+  function reset() {
+    state.t = 0; state.total = 0; state.motifs = 0; state.latest = 'None yet';
+    monkeys.forEach(function (m) {
+      m.count = 0; m.h1 = m.h2 = m.h3 = -1; m.next = expo(m.mean);
+      m.readout.textContent = '·';
+    });
+    clusters.forEach(function (c) { c.total = 0; c.dirty = true; });
+    render();
+  }
+
+  /* Controls */
+  var toggle = document.getElementById('toggle');
+  toggle.addEventListener('click', function () {
+    state.running = !state.running;
+    toggle.textContent = state.running ? 'Pause' : 'Play';
+  });
+  document.getElementById('reset').addEventListener('click', reset);
+
+  var speedsEl = document.getElementById('speeds');
+  [1, 10, 100, 1000].forEach(function (s) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn';
+    b.textContent = s.toLocaleString('en-US') + '×';
+    b.setAttribute('aria-pressed', s === state.speed ? 'true' : 'false');
+    b.addEventListener('click', function () {
+      state.speed = s;
+      Array.prototype.forEach.call(speedsEl.children, function (c) { c.setAttribute('aria-pressed', c === b ? 'true' : 'false'); });
+      updateHint();
+    });
+    speedsEl.appendChild(b);
+  });
+
+  var soundBtn = document.getElementById('sound');
+  soundBtn.addEventListener('click', function () {
+    state.sound = !state.sound;
+    soundBtn.setAttribute('aria-pressed', state.sound ? 'true' : 'false');
+    soundBtn.textContent = state.sound ? 'Sound on' : 'Sound off';
+    updateHint();
+  });
+
+  initAudio();
+  updateHint();
+  render();
+  var last = performance.now();
+  function frame(now) {
+    var dt = Math.min(0.1, (now - last) / 1000);
+    last = now;
+    if (state.running) step(dt * state.speed, true);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
