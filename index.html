@@ -140,6 +140,18 @@ h1 {
 .tile { width: 60px; text-align: center; }
 .tile svg { display: block; width: 60px; height: 60px; overflow: visible; }
 .nt { height: 1.2em; font: 500 0.68rem/1.2 var(--font-mono); font-variant-numeric: tabular-nums; }
+.chead { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px 14px; margin-bottom: 8px; }
+.chead .range { margin: 0; }
+.mix { display: flex; justify-content: center; gap: 4px; margin-top: 3px; }
+.cmix { margin-top: 0; }
+.mb { width: 26px; height: 20px; padding: 0; font: 500 0.62rem/1 var(--font-mono); color: var(--muted); background: transparent; border: 1px solid var(--line); border-radius: 5px; cursor: pointer; }
+.cmix .mb { width: 28px; height: 24px; font-size: 0.68rem; }
+.mb:hover { border-color: var(--muted); }
+.mb:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.mb.m[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); border-color: transparent; }
+.mb.s[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: transparent; }
+.tile.quiet svg, .tile.quiet .nt { opacity: 0.35; }
+.btn.attn { border-color: var(--accent); color: var(--accent); }
 
 .fur { fill: var(--fur); }
 .furs { stroke: var(--fur); fill: none; stroke-linecap: round; }
@@ -170,8 +182,10 @@ footer p { margin: 0 0 8px; font-size: 0.85rem; color: var(--muted); }
     <button class="btn" id="reset" type="button">Reset</button>
     <div class="seg" id="speeds" role="group" aria-label="Speed"></div>
     <button class="btn" id="sound" type="button" aria-pressed="true">Sound on</button>
+    <button class="btn" id="clearmix" type="button" hidden>Clear mix</button>
   </div>
   <p class="hint" id="hint">Sound is on.</p>
+  <p class="hint">M mutes a monkey. S plays only that monkey, or only the soloed ones if several are on. The M and S beside each instrument name do the same for the whole section.</p>
 
   <dl class="stats">
     <div class="stat"><dt>Monkeys</dt><dd id="mcount">58</dd></div>
@@ -300,6 +314,7 @@ footer p { margin: 0 0 8px; font-size: 0.85rem; color: var(--muted); }
   var monkeys = [];
   var clusters = [];
   var stage = document.getElementById('stage');
+  var clearBtn = document.getElementById('clearmix');
 
   GROUPS.forEach(function (g, gi) {
     var count = g.parts.reduce(function (a, p) { return a + p.n; }, 0);
@@ -314,22 +329,29 @@ footer p { margin: 0 0 8px; font-size: 0.85rem; color: var(--muted); }
       var el = document.createElement('section');
       el.className = 'cluster';
       el.style.setProperty('--sec', 'var(' + (p.color || g.color) + ')');
-      el.innerHTML = '<h3 class="name">' + p.name + '<span class="mult">×' + p.n + '</span></h3>' +
-        '<p class="range">' + range + ' · <span class="n">0</span> notes</p><div class="tiles"></div>';
+      el.innerHTML = '<div class="chead"><div><h3 class="name">' + p.name + '<span class="mult">×' + p.n + '</span></h3>' +
+        '<p class="range">' + range + ' · <span class="n">0</span> notes</p></div>' +
+        '<div class="mix cmix">' + mixButtons('all ' + p.name) + '</div></div><div class="tiles"></div>';
       var tiles = el.querySelector('.tiles');
-      var cl = { total: 0, nEl: el.querySelector('.n') };
+      var cmb = el.querySelectorAll('.cmix .mb');
+      var cl = { total: 0, nEl: el.querySelector('.n'), muted: false, solo: false, mBtn: cmb[0], sBtn: cmb[1] };
+      bindMix(cl);
       clusters.push(cl);
       for (var i = 0; i < p.n; i++) {
         var tile = document.createElement('div');
         tile.className = 'tile';
         tile.title = p.name + ', monkey ' + (i + 1);
-        tile.innerHTML = monkeySVG(p, FURS[(i + pi + gi) % 3]) + '<div class="nt">·</div>';
+        tile.innerHTML = monkeySVG(p, FURS[(i + pi + gi) % 3]) + '<div class="nt">·</div>' +
+          '<div class="mix">' + mixButtons(p.name + ' monkey ' + (i + 1)) + '</div>';
         tiles.appendChild(tile);
+        var mb = tile.querySelectorAll('.mb');
         var m = {
           p: p, idx: i + 1, cl: cl, voice: VOICES[p.voice || g.voice], mean: p.mean || (0.9 + Math.random() * 1.4),
           count: 0, h1: -1, h2: -1, h3: -1, next: 0,
+          tile: tile, muted: false, solo: false, audible: true, mBtn: mb[0], sBtn: mb[1],
           mk: tile.querySelector('.mk'), readout: tile.querySelector('.nt')
         };
+        bindMix(m);
         m.next = expo(m.mean);
         monkeys.push(m);
       }
@@ -340,15 +362,58 @@ footer p { margin: 0 0 8px; font-size: 0.85rem; color: var(--muted); }
   });
   document.getElementById('mcount').textContent = monkeys.length;
 
+  /* Mute and solo, like a mixing desk. A monkey is heard if it is not muted, its section is not muted,
+     and either nothing is soloed or it (or its section) is soloed. Muted monkeys keep playing, silently. */
+  function mixButtons(label) {
+    return '<button class="mb m" type="button" aria-pressed="false" title="Mute" aria-label="Mute ' + label + '">M</button>' +
+      '<button class="mb s" type="button" aria-pressed="false" title="Solo" aria-label="Solo ' + label + '">S</button>';
+  }
+  function bindMix(o) {
+    o.mBtn.addEventListener('click', function () { o.muted = !o.muted; refreshMix(); });
+    o.sBtn.addEventListener('click', function () { o.solo = !o.solo; refreshMix(); });
+  }
+  function refreshMix() {
+    var anySolo = false, muted = 0, solo = 0;
+    clusters.concat(monkeys).forEach(function (o) {
+      if (o.solo) { anySolo = true; solo++; }
+      if (o.muted) muted++;
+      o.mBtn.setAttribute('aria-pressed', o.muted ? 'true' : 'false');
+      o.sBtn.setAttribute('aria-pressed', o.solo ? 'true' : 'false');
+    });
+    monkeys.forEach(function (m) {
+      m.audible = !m.muted && !m.cl.muted && (!anySolo || m.solo || m.cl.solo);
+      m.tile.classList.toggle('quiet', !m.audible);
+    });
+    var parts = [];
+    if (muted) parts.push(muted + ' muted');
+    if (solo) parts.push(solo + ' solo');
+    clearBtn.hidden = parts.length === 0;
+    clearBtn.textContent = 'Clear mix (' + parts.join(', ') + ')';
+  }
+  clearBtn.addEventListener('click', function () {
+    clusters.concat(monkeys).forEach(function (o) { o.muted = false; o.solo = false; });
+    refreshMix();
+  });
+  refreshMix();
+
   /* Sound: real instrument samples from samples.js, with a synthesized fallback. */
   var ctx = null, master = null, banks = {}, mode = 'none'; /* none, loading, samples, synth */
   var hintEl = document.getElementById('hint');
 
+  /* The sound button tells the truth: "Start sound" until the browser has actually allowed audio. */
+  function syncSoundBtn() {
+    var needs = !!(state.sound && ctx && ctx.state !== 'running');
+    soundBtn.textContent = !state.sound ? 'Sound off' : needs ? 'Start sound' : 'Sound on';
+    soundBtn.setAttribute('aria-pressed', state.sound && !needs ? 'true' : 'false');
+    soundBtn.classList.toggle('attn', needs);
+  }
+
   function updateHint() {
+    syncSoundBtn();
     var msg;
     if (!state.sound) msg = 'Sound is off.';
     else if (mode === 'none') msg = 'This browser does not support audio.';
-    else if (ctx && ctx.state !== 'running') msg = 'Sound is on. Your browser needs one click anywhere on the page before it will play.';
+    else if (ctx && ctx.state !== 'running') msg = 'Your browser blocks sound until you click something on the page. Click Start sound, or anywhere else.';
     else if (state.speed !== 1) msg = 'Sound plays at 1× speed only.';
     else if (mode === 'loading') msg = 'Loading instrument samples (about 5 MB)…';
     else if (mode === 'synth') msg = 'Instrument samples not found, so this is computer-made sound. Keep samples.js next to the page.';
@@ -407,10 +472,14 @@ footer p { margin: 0 0 8px; font-size: 0.85rem; color: var(--muted); }
   /* Browsers keep audio silent until the person interacts, so the first click, key press or tap starts it. */
   function unlock() {
     if (ctx && ctx.state !== 'running') {
-      try { ctx.resume().then(updateHint, function () {}); } catch (e) {}
+      try {
+        ctx.resume().then(updateHint, function () {});
+        var b = ctx.createBuffer(1, 1, 22050), s = ctx.createBufferSource();
+        s.buffer = b; s.connect(ctx.destination); s.start(0); /* a silent blip, which iOS Safari needs */
+      } catch (e) {}
     }
   }
-  ['pointerdown', 'keydown', 'touchend'].forEach(function (ev) {
+  ['click', 'keydown', 'touchend'].forEach(function (ev) {
     document.addEventListener(ev, unlock, { passive: true });
   });
 
@@ -511,7 +580,7 @@ footer p { margin: 0 0 8px; font-size: 0.85rem; color: var(--muted); }
         m.mk.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(-6px)' }, { transform: 'translateY(0)' }], { duration: 180, easing: 'ease-out' });
         m.readout.animate([{ color: 'var(--sec)' }, { color: 'var(--fg)' }], { duration: 450 });
       }
-      if (soundOn) playSound(m, midi);
+      if (soundOn && m.audible) playSound(m, midi);
     });
     render();
   }
@@ -551,9 +620,8 @@ footer p { margin: 0 0 8px; font-size: 0.85rem; color: var(--muted); }
 
   var soundBtn = document.getElementById('sound');
   soundBtn.addEventListener('click', function () {
+    if (state.sound && ctx && ctx.state !== 'running') { unlock(); return; } /* "Start sound": do not toggle off */
     state.sound = !state.sound;
-    soundBtn.setAttribute('aria-pressed', state.sound ? 'true' : 'false');
-    soundBtn.textContent = state.sound ? 'Sound on' : 'Sound off';
     updateHint();
   });
 
